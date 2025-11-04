@@ -112,7 +112,7 @@ class MedPatientRewardMultiturn:
         dialogue_wo_system = convert_messages_to_dialogue(messages_wo_system)
 
         # patient data in the format of system, user(doctor), assistant(patient), ...
-        for _ in range(try_num):
+        for attempt in range(try_num):
             try:
                 tasks = [
                     call_r1_model_async(
@@ -149,10 +149,18 @@ class MedPatientRewardMultiturn:
                 print(
                     f"An error occurred while calculating scores, retrying... Error: {error}"
                 )
+                if attempt < try_num - 1:
+                    delay = min(2 ** attempt, 30)
+                    print(f"Waiting {delay} seconds before retry...")
+                    await asyncio.sleep(delay)
 
         print("Failed to calculate scores after multiple retries.")
 
-        return {}
+        return {
+            "information_reward": 0.0,
+            "completeness_reward": 0.0,
+            "conflict_reward": 0.0,
+        }
 
 
 async def compute_score(sample) -> Tuple[Dict[str, Any], timedelta]:
